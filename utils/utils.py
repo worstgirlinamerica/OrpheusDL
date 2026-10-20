@@ -1,4 +1,4 @@
-import pickle, requests, errno, hashlib, math, os, re, operator
+import pickle, requests, errno, hashlib, math, os, re, operator, shutil, subprocess
 from tqdm import tqdm
 from PIL import Image, ImageChops
 from requests.adapters import HTTPAdapter
@@ -157,3 +157,51 @@ def download_to_temp(url, headers={}, extension='', enable_progress_bar=False, i
     location = create_temp_filename() + (('.' + extension) if extension else '')
     download_file(url, location, headers=headers, enable_progress_bar=enable_progress_bar, indent_level=indent_level)
     return location
+
+def find_system_ffmpeg():
+    ffmpeg_path = shutil.which('ffmpeg')
+    if ffmpeg_path is None:
+        raise Exception('ffmpeg not found in PATH')
+    return True, ffmpeg_path
+
+def get_clean_env():
+    env = os.environ.copy()
+    return env
+
+def resolve_ffmpeg_with_opus(preferred=None):
+    """Return an ffmpeg executable that advertises the libopus encoder."""
+    candidates = [preferred, shutil.which('ffmpeg')]
+    seen = set()
+    for ffmpeg_path in candidates:
+        if not ffmpeg_path or ffmpeg_path in seen:
+            continue
+        seen.add(ffmpeg_path)
+        try:
+            result = subprocess.run(
+                [ffmpeg_path, '-hide_banner', '-encoders'],
+                capture_output=True, text=True, timeout=10, check=False,
+            )
+            if result.returncode == 0 and 'libopus' in result.stdout:
+                return ffmpeg_path
+        except (OSError, subprocess.SubprocessError):
+            continue
+    return None
+
+def resolve_mp4decrypt():
+    path = shutil.which('mp4decrypt')
+    return path
+
+def resolve_shaka_packager():
+    for name in ['shaka-packager', 'packager', 'packager-osx-x64', 'packager-linux-x64']:
+        path = shutil.which(name)
+        if path:
+            return path
+    return None
+
+
+def silentremove(filename):
+    try:
+        os.remove(filename)
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            raise

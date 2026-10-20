@@ -197,6 +197,9 @@ class QualityEnum(Flag):
     HIGH = auto()
     LOSSLESS = auto()
     HIFI = auto()
+    ATMOS = auto()
+    SPATIAL = auto()
+    RA360 = auto()
 
 
 @dataclass
@@ -351,6 +354,7 @@ class TrackInfo:
     credits_extra_kwargs: Optional[dict] = field(default_factory=dict)
     lyrics_extra_kwargs: Optional[dict] = field(default_factory=dict)
     error: Optional[str] = None
+    id: Optional[str] = None
 
 
 @dataclass
